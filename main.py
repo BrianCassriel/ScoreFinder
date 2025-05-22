@@ -97,5 +97,21 @@ async def delete_score(interaction: discord.Interaction, id: int):
     message = f"Deleted score with ID {id} from the database."
     await interaction.response.send_message(message, ephemeral=True)
 
+@client.tree.command()
+
+async def get_scores_csv(interaction: discord.Interaction):
+    """Gets all scores in CSV format."""
+    scores = scores_db.get_scores_dump()
+    with open('scores.csv', 'w') as f:
+        f.write("id,title,pdfFilename,collection,composer_first_name,composer_last_name,publisher,instrument\n")
+        for score in scores:
+            for i in range(len(score)):
+                f.write(f"{score[i]}")
+                if i < len(score) - 1:
+                    f.write(",")
+            f.write("\n")
+    with open('scores.csv', 'rb') as f:
+        await interaction.response.send_message(file=discord.File(f, 'scores.csv'), ephemeral=True)
+
 token = open('discordToken.txt').readline().strip()
 client.run(token)

@@ -68,8 +68,15 @@ class Database:
         return []
     
     def delete_score(self, id: int):
-        pass
+        self.cursor.execute('''
+            DELETE FROM score
+            WHERE id = %s;
+        ''', (id,))
+        self.connection.commit()
 
-    def dump(self):
-        # Dump the database to a csv file
-        pass
+    def get_scores_dump(self):
+        self.cursor.execute('''
+            SELECT *
+            FROM all_score_info;
+        ''')
+        return self.cursor.fetchall()
