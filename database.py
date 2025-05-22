@@ -3,13 +3,47 @@ import discord
 
 class Database:
     def __init__(self):
-        # setup connection & cursor
+        self.connection = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="CPSC408",
+            auth_plugin='mysql_native_password',
+            database='ScoreDB'
+        )
+        self.cursor = self.connection.cursor()
         pass
 
+    def destructor(self):
+        self.cursor.close()
+        self.connection.close()
+
+    def get_user(self, user_id: int) -> tuple:
+        self.cursor.execute('''
+            SELECT * 
+            FROM user
+            WHERE discordID = %s;
+        ''', (user_id,))
+        return self.cursor.fetchone()
+
+    def add_user(self, member: discord.Member):
+        known_id = self.get_user(member.id)
+        if (known_id is not None):
+            return known_id
+        self.cursor.execute('''
+            INSERT INTO user(discordID)
+            VALUES (%s);
+        ''', (member.id,))
+        self.connection.commit()
+        return member.id
+    
     def add_users(self, members: list[discord.Member]):
-        # Add to the users table
-        # must check if the user is already in the database
-        pass
+        self.cursor.execute('''
+            ALTER TABLE user
+            MODIFY COLUMN discordID BIGINT NOT NULL;
+        ''')
+        self.connection.commit()
+        for member in members:
+            self.add_user(member)
 
     def set_primary_instrument(self, user_id: int, instrument: str):
         pass
@@ -25,4 +59,8 @@ class Database:
         return []
     
     def delete_score(self, id: int):
+        pass
+
+    def dump(self):
+        # Dump the database to a csv file
         pass

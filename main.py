@@ -9,20 +9,9 @@ MY_GUILD = discord.Object(id=1366586741359644873)
 class MyClient(discord.Client):
     def __init__(self, *, intents: discord.Intents):
         super().__init__(intents=intents)
-        # A CommandTree is a special type that holds all the application command
-        # state required to make it work. This is a separate class because it
-        # allows all the extra state to be opt-in.
-        # Whenever you want to work with application commands, your tree is used
-        # to store and work with them.
-        # Note: When using commands.Bot instead of discord.Client, the bot will
-        # maintain its own tree instead.
         self.tree = app_commands.CommandTree(self)
 
-    # In this basic example, we just synchronize the app commands to one guild.
-    # Instead of specifying a guild to every command, we copy over our global commands instead.
-    # By doing so, we don't have to wait up to an hour until they are shown to the end-user.
     async def setup_hook(self):
-        # This copies the global commands over to your guild.
         self.tree.copy_global_to(guild=MY_GUILD)
         await self.tree.sync(guild=MY_GUILD)
 
@@ -35,6 +24,10 @@ async def on_ready():
     print('------')
     for (guild) in client.guilds:
         scores_db.add_users(guild.members)
+
+@client.event
+async def on_member_join(member: discord.Member):
+    scores_db.add_user(member)
 
 @client.tree.command()
 @app_commands.describe(
@@ -92,6 +85,10 @@ async def add_score(interaction: discord.Interaction, title: str, composer: str,
         message += f" Collection: {collection}."
     await interaction.response.send_message(message, ephemeral=True)
 
+@client.tree.command()
+@app_commands.describe(
+    id='The ID of the score to delete'
+)
 async def delete_score(interaction: discord.Interaction, id: int):
     """Deletes a score from the database."""
     scores_db.delete_score(id)
