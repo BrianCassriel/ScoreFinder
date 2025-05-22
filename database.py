@@ -46,6 +46,21 @@ class Database:
             self.add_user(member)
 
     def set_primary_instrument(self, user_id: int, instrument: str):
+        
+        self.cursor.execute(
+            "SELECT instrumentID FROM instrument WHERE LOWER(name) = %s;",
+            (name.lower(),)
+        )
+        row = self.cursor.fetchone()
+        if row is None:
+            raise ValueError(f"No such instrument: {name}")
+        instr_id = row[0]
+
+        self.cursor.execute(
+            "UPDATE user SET primaryInstrument = %s WHERE discordID = %s;",
+            (instr_id, user_id)
+        )
+        self.connection.commit()
         pass
 
     def get_primary_instrument(self, user_id: int) -> str:
