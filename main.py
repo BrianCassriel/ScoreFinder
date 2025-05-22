@@ -16,6 +16,8 @@ class MyClient(discord.Client):
         await self.tree.sync(guild=MY_GUILD)
 
 intents = discord.Intents.default()
+intents.members = True
+intents.message_content = True
 client = MyClient(intents=intents)
 
 @client.event

@@ -11,9 +11,8 @@ class Database:
             database='ScoreDB'
         )
         self.cursor = self.connection.cursor()
-        pass
-
-    def destructor(self):
+        
+    def __del__(self):
         self.cursor.close()
         self.connection.close()
 
@@ -37,11 +36,6 @@ class Database:
         return member.id
     
     def add_users(self, members: list[discord.Member]):
-        self.cursor.execute('''
-            ALTER TABLE user
-            MODIFY COLUMN discordID BIGINT NOT NULL;
-        ''')
-        self.connection.commit()
         for member in members:
             self.add_user(member)
 
