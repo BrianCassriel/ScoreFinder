@@ -68,7 +68,6 @@ async def on_member_join(member: discord.Member):
 )
 async def instrument(interaction: discord.Interaction, instrument: Optional[str] = None):
     """Sets your primary instrument. Leave blank to see your current primary instrument."""
-    # Show current if no argument
     if instrument is None:
         instrument = scores_db.get_primary_instrument(interaction.user.id)
         if instrument is not None:
@@ -76,10 +75,8 @@ async def instrument(interaction: discord.Interaction, instrument: Optional[str]
         else:
             message = "You don't have a primary instrument set."
     else:
-        # Normalize and delegate validation + update
         instrument = instrument.lower()
         message = scores_db.set_primary_instrument(interaction.user.id, instrument)
-
     await interaction.response.send_message(message, ephemeral=True)
 
 @client.tree.context_menu(name='Show Primary Instrument')
