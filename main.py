@@ -49,7 +49,7 @@ async def instrument(interaction: discord.Interaction, instrument: Optional[str]
     await interaction.response.send_message(message, ephemeral=True)
 
 @client.tree.context_menu(name='Show Primary Instrument')
-async def show_join_date(interaction: discord.Interaction, member: discord.Member):
+async def show_primary_instrument(interaction: discord.Interaction, member: discord.Member):
     """Shows the primary instrument of a member."""
     instrument = scores_db.get_primary_instrument(member.id)
     if instrument is None:
@@ -64,12 +64,24 @@ async def show_join_date(interaction: discord.Interaction, member: discord.Membe
     search='The value to search for',
     use_primary_instrument='Whether to include only results using your primary instrument'
 )
-async def find(interaction: discord.Interaction, by: Literal["Title", "Composer", "Publisher"], search: str, use_primary_instrument: Optional[bool] = None):
+async def find(interaction: discord.Interaction, by: Literal["Title", "Composer", "Publisher", "Collection"], search: Optional[str] = '', use_primary_instrument: Optional[bool] = False):
     """Search scores and collections by title, composer or publisher."""
-    results = scores_db.search_scores(by, search, use_primary_instrument)
-    # The results are a list of tuples, where each tuple is a score.
-    # Will need to format this nicely.
-    await interaction.response.send_message(f'You would like to search for {search} by {by}.', ephemeral=True)
+    await interaction.response.defer(ephemeral=True)
+    results = scores_db.search_scores(interaction.user.id, by, search, use_primary_instrument)
+    if len(results) == 0 and use_primary_instrument:
+        await interaction.followup.send(f"No results found for '{search}' in {by} for {scores_db.get_primary_instrument(interaction.user.id)}.", ephemeral=True)
+        return
+    elif len(results) == 0:
+        await interaction.followup.send(f"No results found for '{search}' in {by}.", ephemeral=True)
+        return
+    
+    message = f"## Found {len(results)} results for '{search}' in {by}"
+    if use_primary_instrument:
+        message += f" (*{scores_db.get_primary_instrument(interaction.user.id)} only*)"
+    message += ":\n"
+    for result in results:
+        message += f'(ID: {result[0]}) **{result[1]}** by {result[3]} from *{result[2]}*. Published by {result[4]}.\n'
+    await interaction.followup.send(message, ephemeral=True)
 
 @client.tree.command()
 @app_commands.describe(
@@ -96,6 +108,22 @@ async def delete_score(interaction: discord.Interaction, id: int):
     scores_db.delete_score(id)
     message = f"Deleted score with ID {id} from the database."
     await interaction.response.send_message(message, ephemeral=True)
+
+@client.tree.command()
+
+async def get_scores_csv(interaction: discord.Interaction):
+    """Gets all scores in CSV format."""
+    scores = scores_db.get_scores_dump()
+    with open('scores.csv', 'w') as f:
+        f.write("id,title,pdfFilename,collection,composer_first_name,composer_last_name,publisher,instrument\n")
+        for score in scores:
+            for i in range(len(score)):
+                f.write(f"{score[i]}")
+                if i < len(score) - 1:
+                    f.write(",")
+            f.write("\n")
+    with open('scores.csv', 'rb') as f:
+        await interaction.response.send_message(file=discord.File(f, 'scores.csv'), ephemeral=True)
 
 token = open('discordToken.txt').readline().strip()
 client.run(token)
