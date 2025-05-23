@@ -58,14 +58,53 @@ class Database:
         pass
 
     def get_primary_instrument(self, user_id: int) -> str:
-        return "piano"
+        return "Piano"
     
-    def search_scores(self, by: str, search: str, use_primary_instrument: bool = False) -> list[tuple]:
+    def search_scores(self, user_id: int, by: str, search: str, use_primary_instrument: bool = False) -> list[tuple]:
         # Search the scores in the database
         # by is the field to search by
         # search is the value to search for
         # use_primary_instrument is whether to include only results using the user's primary instrument
-        return []
+        search_field_map = {
+            "Title": "score.title",
+            "Composer": "CONCAT(firstName, ' ', lastName)",
+            "Collection": "collection.name",
+            "Publisher": "publisher.name"
+        }
+        query = f'''
+            SELECT
+                score.scoreID AS ID,
+                score.title AS title,
+                collection.name AS collection,
+                CONCAT(firstName, ' ', lastName) AS composer,
+                publisher.name AS publisher
+            FROM score
+            INNER JOIN collection
+                ON score.collectionID = collection.collectionID
+            INNER JOIN scorecomposers
+                ON score.scoreID = scorecomposers.scoreID
+            INNER JOIN composer
+                ON scorecomposers.composerID = composer.composerID
+            INNER JOIN publisher
+                ON score.publisherID = publisher.publisherID
+        '''
+
+        if use_primary_instrument:
+            query += '''
+            INNER JOIN scoreinstruments
+                ON score.scoreID = scoreinstruments.scoreID
+            INNER JOIN user
+                ON user.primaryInstrument = scoreinstruments.instrumentID
+            '''
+        query += f'''
+            WHERE {search_field_map[by]} LIKE '%{search}%'
+        '''
+        if use_primary_instrument:
+            query += f' AND user.discordID = {user_id};'
+        else:
+            query += ';'
+        self.cursor.execute(query)
+        return self.cursor.fetchall()
     
     def delete_score(self, id: int):
         self.cursor.execute('''
