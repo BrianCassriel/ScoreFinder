@@ -118,11 +118,13 @@ class Database:
 
     def count_primary_instruments(self):
         self.cursor.execute('''
-            SELECT instrument.name, COUNT(user.primaryInstrument) AS count
-            FROM user
-            RIGHT JOIN instrument
-                ON user.primaryInstrument = instrument.instrumentID
-            GROUP BY instrument.name;
+            SELECT instrument.name, (
+                SELECT COUNT(*)
+                FROM user
+                WHERE user.primaryInstrument = instrument.instrumentID
+            ) AS count
+            FROM instrument
+            ORDER BY count DESC;
         ''')
         return self.cursor.fetchall()
 
