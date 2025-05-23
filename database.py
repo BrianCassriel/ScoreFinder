@@ -116,6 +116,16 @@ class Database:
         ''', (id,))
         self.connection.commit()
 
+    def count_primary_instruments(self):
+        self.cursor.execute('''
+            SELECT instrument.name, COUNT(user.primaryInstrument) AS count
+            FROM user
+            RIGHT JOIN instrument
+                ON user.primaryInstrument = instrument.instrumentID
+            GROUP BY instrument.name;
+        ''')
+        return self.cursor.fetchall()
+
     def get_scores_dump(self):
         self.cursor.execute('''
             SELECT *

@@ -144,11 +144,18 @@ async def delete_score(interaction: discord.Interaction, id: int):
         ephemeral=True
     )
 
+@client.tree.command()
+async def instrumentalists(interaction: discord.Interaction):
+    """Shows the number of primary instrumentalists for each instrument."""
+    result = scores_db.count_primary_instruments()
+    message = "## Number of primary instrumentalists for each instrument:\n"
+    for instrument in result:
+        message += f"{instrument[0]}: {instrument[1]}\n"
+    await interaction.response.send_message(message, ephemeral=True)
 
 @client.tree.command()
-
 async def get_scores_csv(interaction: discord.Interaction):
-    """Gets all scores in CSV format."""
+    """Gets all score information in CSV format."""
     scores = scores_db.get_scores_dump()
     with open('scores.csv', 'w') as f:
         f.write("id,title,pdfFilename,collection,composer_first_name,composer_last_name,publisher,instrument\n")
