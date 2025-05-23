@@ -12,6 +12,14 @@ class ConfirmDeleteView(View):
             "DELETE FROM score WHERE scoreID = %s;",
             (self.score_id,)
         )
+        self.db.cursor.execute(
+            "DELETE FROM scorecomposers WHERE scoreID = %s;",
+            (self.score_id,)
+        )
+        self.db.cursor.execute(
+            "DELETE FROM scoreinstruments WHERE scoreID = %s;",
+            (self.score_id,)
+        )
 
     @button(label="Yes, delete", style=discord.ButtonStyle.danger)
     async def confirm(self, interaction: discord.Interaction, button: Button):
