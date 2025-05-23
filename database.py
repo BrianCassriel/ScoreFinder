@@ -11,10 +11,6 @@ class Database:
             database='ScoreDB'
         )
         self.cursor = self.connection.cursor()
-        
-    def __del__(self):
-        self.cursor.close()
-        self.connection.close()
 
     def get_user(self, user_id: int) -> tuple:
         self.cursor.execute('''
@@ -93,8 +89,28 @@ class Database:
         return []
     
     def delete_score(self, id: int):
-        pass
+        self.cursor.execute(
+        "DELETE FROM score WHERE scoreID = %s;",
+        (id,))
 
     def dump(self):
         # Dump the database to a csv file
         pass
+
+    # ─── SAFE CLEANUP ───
+    def __del__(self):
+        # close cursor if still valid
+        try:
+            cur = getattr(self, 'cursor', None)
+            if cur:
+                cur.close()
+        except ReferenceError:
+            pass
+
+        # close connection if still valid
+        try:
+            conn = getattr(self, 'connection', None)
+            if conn:
+                conn.close()
+        except ReferenceError:
+            pass

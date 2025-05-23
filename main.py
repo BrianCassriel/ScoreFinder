@@ -2,6 +2,7 @@ from typing import Optional, Literal
 import discord
 from discord import app_commands
 from database import Database
+from discord.ui import View, Button, button
 
 scores_db = Database()
 MY_GUILD = discord.Object(id=1366586741359644873)
@@ -14,6 +15,36 @@ class MyClient(discord.Client):
     async def setup_hook(self):
         self.tree.copy_global_to(guild=MY_GUILD)
         await self.tree.sync(guild=MY_GUILD)
+
+class ConfirmDeleteView(View):
+    def __init__(self, score_id: int, db: Database):
+        super().__init__(timeout=60)
+        self.score_id = score_id
+        self.db = db
+        self.finished_msg = None
+
+    @button(label="Yes, delete", style=discord.ButtonStyle.danger)
+    async def confirm(self, interaction: discord.Interaction, button: Button):
+        # perform deletion and commit
+        self.db.connection.start_transaction()
+        self.db.cursor.execute(
+            "DELETE FROM score WHERE scoreID = %s;",
+            (self.score_id,)
+        )
+        self.db.connection.commit()
+        await interaction.response.edit_message(
+            content=f"Deleted score with ID {self.score_id}.", view=None
+        )
+        self.stop()
+
+    @button(label="No, cancel", style=discord.ButtonStyle.secondary)
+    async def cancel(self, interaction: discord.Interaction, button: Button):
+        # rollback and cancel
+        self.db.connection.rollback()
+        await interaction.response.edit_message(
+            content="Deletion cancelled.", view=None
+        )
+        self.stop()
 
 intents = discord.Intents.default()
 intents.members = True
@@ -95,10 +126,15 @@ async def add_score(interaction: discord.Interaction, title: str, composer: str,
     id='The ID of the score to delete'
 )
 async def delete_score(interaction: discord.Interaction, id: int):
-    """Deletes a score from the database."""
-    scores_db.delete_score(id)
-    message = f"Deleted score with ID {id} from the database."
-    await interaction.response.send_message(message, ephemeral=True)
+    """Deletes a score from the database, with confirmation."""
+    # Send confirmation prompt
+    view = ConfirmDeleteView(id, scores_db)
+    await interaction.response.send_message(
+        f"Are you sure you want to delete score ID {id}?",
+        view=view,
+        ephemeral=True
+    )
+
 
 token = open('discordToken.txt').readline().strip()
 client.run(token)
