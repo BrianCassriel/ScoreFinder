@@ -2,7 +2,7 @@ from typing import Optional, Literal
 import discord
 from discord import app_commands
 from database import Database
-from discord.ui import View, Button, button
+from ConfirmDeleteView import ConfirmDeleteView
 
 scores_db = Database()
 MY_GUILD = discord.Object(id=1366586741359644873)
@@ -15,36 +15,6 @@ class MyClient(discord.Client):
     async def setup_hook(self):
         self.tree.copy_global_to(guild=MY_GUILD)
         await self.tree.sync(guild=MY_GUILD)
-
-class ConfirmDeleteView(View):
-    def __init__(self, score_id: int, db: Database):
-        super().__init__(timeout=60)
-        self.score_id = score_id
-        self.db = db
-        self.finished_msg = None
-
-    @button(label="Yes, delete", style=discord.ButtonStyle.danger)
-    async def confirm(self, interaction: discord.Interaction, button: Button):
-        # perform deletion and commit
-        self.db.connection.start_transaction()
-        self.db.cursor.execute(
-            "DELETE FROM score WHERE scoreID = %s;",
-            (self.score_id,)
-        )
-        self.db.connection.commit()
-        await interaction.response.edit_message(
-            content=f"Deleted score with ID {self.score_id}.", view=None
-        )
-        self.stop()
-
-    @button(label="No, cancel", style=discord.ButtonStyle.secondary)
-    async def cancel(self, interaction: discord.Interaction, button: Button):
-        # rollback and cancel
-        self.db.connection.rollback()
-        await interaction.response.edit_message(
-            content="Deletion cancelled.", view=None
-        )
-        self.stop()
 
 intents = discord.Intents.default()
 intents.members = True
@@ -96,7 +66,7 @@ async def show_primary_instrument(interaction: discord.Interaction, member: disc
     use_primary_instrument='Whether to include only results using your primary instrument'
 )
 async def find(interaction: discord.Interaction, by: Literal["Title", "Composer", "Publisher", "Collection"], search: Optional[str] = '', use_primary_instrument: Optional[bool] = False):
-    """Search scores and collections by title, composer or publisher."""
+    """Search scores by title, composer, publisher, or collection."""
     await interaction.response.defer(ephemeral=True)
     results = scores_db.search_scores(interaction.user.id, by, search, use_primary_instrument)
     if len(results) == 0 and use_primary_instrument:
@@ -105,7 +75,6 @@ async def find(interaction: discord.Interaction, by: Literal["Title", "Composer"
     elif len(results) == 0:
         await interaction.followup.send(f"No results found for '{search}' in {by}.", ephemeral=True)
         return
-    
     message = f"## Found {len(results)} results for '{search}' in {by}"
     if use_primary_instrument:
         message += f" (*{scores_db.get_primary_instrument(interaction.user.id)} only*)"
@@ -120,7 +89,6 @@ async def find(interaction: discord.Interaction, by: Literal["Title", "Composer"
 )
 async def delete_score(interaction: discord.Interaction, id: int):
     """Deletes a score from the database, with confirmation."""
-    # Send confirmation prompt
     view = ConfirmDeleteView(id, scores_db)
     await interaction.response.send_message(
         f"Are you sure you want to delete score ID {id}?",
