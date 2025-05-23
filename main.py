@@ -2,6 +2,7 @@ from typing import Optional, Literal
 import discord
 from discord import app_commands
 from database import Database
+from discord.ui import View, Button, button
 
 scores_db = Database()
 MY_GUILD = discord.Object(id=1366586741359644873)
@@ -14,6 +15,36 @@ class MyClient(discord.Client):
     async def setup_hook(self):
         self.tree.copy_global_to(guild=MY_GUILD)
         await self.tree.sync(guild=MY_GUILD)
+
+class ConfirmDeleteView(View):
+    def __init__(self, score_id: int, db: Database):
+        super().__init__(timeout=60)
+        self.score_id = score_id
+        self.db = db
+        self.finished_msg = None
+
+    @button(label="Yes, delete", style=discord.ButtonStyle.danger)
+    async def confirm(self, interaction: discord.Interaction, button: Button):
+        # perform deletion and commit
+        self.db.connection.start_transaction()
+        self.db.cursor.execute(
+            "DELETE FROM score WHERE scoreID = %s;",
+            (self.score_id,)
+        )
+        self.db.connection.commit()
+        await interaction.response.edit_message(
+            content=f"Deleted score with ID {self.score_id}.", view=None
+        )
+        self.stop()
+
+    @button(label="No, cancel", style=discord.ButtonStyle.secondary)
+    async def cancel(self, interaction: discord.Interaction, button: Button):
+        # rollback and cancel
+        self.db.connection.rollback()
+        await interaction.response.edit_message(
+            content="Deletion cancelled.", view=None
+        )
+        self.stop()
 
 intents = discord.Intents.default()
 intents.members = True
@@ -37,15 +68,18 @@ async def on_member_join(member: discord.Member):
 )
 async def instrument(interaction: discord.Interaction, instrument: Optional[str] = None):
     """Sets your primary instrument. Leave blank to see your current primary instrument."""
-    message = f"You don't have a primary instrument set."
+    # Show current if no argument
     if instrument is None:
         instrument = scores_db.get_primary_instrument(interaction.user.id)
         if instrument is not None:
             message = f"Your primary instrument is {instrument}."
+        else:
+            message = "You don't have a primary instrument set."
     else:
+        # Normalize and delegate validation + update
         instrument = instrument.lower()
-        scores_db.set_primary_instrument(interaction.user.id, instrument)
-        message = f"Your primary instrument is now {instrument}."
+        message = scores_db.set_primary_instrument(interaction.user.id, instrument)
+
     await interaction.response.send_message(message, ephemeral=True)
 
 @client.tree.context_menu(name='Show Primary Instrument')
@@ -104,10 +138,15 @@ async def add_score(interaction: discord.Interaction, title: str, composer: str,
     id='The ID of the score to delete'
 )
 async def delete_score(interaction: discord.Interaction, id: int):
-    """Deletes a score from the database."""
-    scores_db.delete_score(id)
-    message = f"Deleted score with ID {id} from the database."
-    await interaction.response.send_message(message, ephemeral=True)
+    """Deletes a score from the database, with confirmation."""
+    # Send confirmation prompt
+    view = ConfirmDeleteView(id, scores_db)
+    await interaction.response.send_message(
+        f"Are you sure you want to delete score ID {id}?",
+        view=view,
+        ephemeral=True
+    )
+
 
 @client.tree.command()
 
