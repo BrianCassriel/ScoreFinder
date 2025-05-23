@@ -116,22 +116,6 @@ async def find(interaction: discord.Interaction, by: Literal["Title", "Composer"
 
 @client.tree.command()
 @app_commands.describe(
-    title='The title of the score',
-    composer='The composer of the score',
-    publisher='The publisher of the score',
-    collection='The collection of the score'
-)
-async def add_score(interaction: discord.Interaction, title: str, composer: str, publisher: Optional[str] = None, collection: Optional[str] = None): # ADD INSTRUMENTS
-    """Adds a score to the database."""
-    message = f"Added {title} by {composer} to the database."
-    if publisher is not None:
-        message += f" Publisher: {publisher}."
-    if collection is not None:
-        message += f" Collection: {collection}."
-    await interaction.response.send_message(message, ephemeral=True)
-
-@client.tree.command()
-@app_commands.describe(
     id='The ID of the score to delete'
 )
 async def delete_score(interaction: discord.Interaction, id: int):
@@ -152,6 +136,7 @@ async def instrumentalists(interaction: discord.Interaction):
     for instrument in result:
         message += f"{instrument[0]}: {instrument[1]}\n"
     await interaction.response.send_message(message, ephemeral=True)
+
 
 @client.tree.command()
 async def get_scores_csv(interaction: discord.Interaction):
