@@ -1,19 +1,60 @@
 # ScoreFinder
+
 CPSC 408 Final Project - A Discord application to interface with a database of music scores.
 
-Landon Kauer
-Brian Cassriel
-05/23/2025
-Final Project
-CPSC 408
+**Landon Kauer** & **Brian Cassriel**
 
-### A description of any known compile or runtime errors, or code limitations
+### Known Compile or Runtime Errors, or Code Limitations
+
 N/A
 
-### A list of all references used to complete the assignment
-Geeks for geeks
-stackoverflow
-chatgpt for help with discord.py syntax and functionality
+## Installation
 
-### Instructions
-Open a terminal in the project’s root folder (where you already have main.py, database.py, and score_dump_3.sql) and install the only two required packages—discord.py and mysql-connector-python—by running pip install discord.py mysql-connector-python. Next, ensure your MySQL server is running, then log in as a privileged user and create the database with CREATE DATABASE IF NOT EXISTS ScoreDB;. Import the schema and any seed data using mysql -u root -p ScoreDB < score_dump.sql (enter your password when prompted). After the database is in place, create a plain‐text file called discordToken.txt in the project folder and paste your bot token on the first line with no extra spaces or blank lines. Open main.py and confirm you’ve imported discord.ui.View, Button, and button at the top. Finally, run python main.py; you should see “Logged in as YourBotName (ID: …)” in the console, and in Discord the slash commands /instrument piano and /delete_score <id> will be available once they finish propagating.
+### 1. Open the Terminal in the Project Root
+
+It contains `main.py`.
+
+### 2. Install Required Python Packages
+
+Use pip to install the necessary dependencies:
+
+```bash
+pip install discord.py mysql-connector-python
+```
+
+### 3. Start the MySQL Server
+
+Ensure your MySQL server is running locally.
+
+### 4. Create the Database & Import the Schema & Data
+
+Use DataGrip to create a new database schema called "ScoreDB" and import the data using the `score_dump.sql` file.
+
+### 5. Add Your Discord Bot Token
+
+Create a plain-text file named `discordToken.txt` in the project folder. Paste your Discord bot token directly in this file.
+
+### 6. Run the Bot
+
+Start the bot by running:
+
+```bash
+python main.py
+```
+
+You should see output like:
+
+```
+Logged in as ScoreFinder (ID: ...)
+```
+
+The bot is now running, and the slash commands `/instrument piano` and `/delete_score <id>` will be available in Discord once they finish propagating!
+
+### References
+
+Geeks for geeks
+StackOverflow
+OpenAI ChatGPT for help with discord.py syntax and errors
+
+Composer first and last name concatenation in SQL:
+[SQL CONCAT()](https://learn.microsoft.com/en-us/sql/t-sql/functions/concat-transact-sql?view=sql-server-ver16)
